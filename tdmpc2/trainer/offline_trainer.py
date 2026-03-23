@@ -3,6 +3,7 @@ from copy import deepcopy
 from time import time
 from pathlib import Path
 from glob import glob
+from tqdm import tqdm 
 
 import numpy as np
 import torch
@@ -10,7 +11,7 @@ from tqdm import tqdm
 
 from common.buffer import Buffer
 from trainer.base import Trainer
-
+from tensordict import TensorDict
 
 class OfflineTrainer(Trainer):
 	"""Trainer class for multi-task offline TD-MPC2 training."""
@@ -41,54 +42,58 @@ class OfflineTrainer(Trainer):
 	
 	def _load_dataset(self):
 		"""Load dataset for offline training."""
-		fp = Path(os.path.join(self.cfg.data_dir, '*.pt'))
-		fps = sorted(glob(str(fp)))
-		assert len(fps) > 0, f'No data found at {fp}'
-		print(f'Found {len(fps)} files in {fp}')
-		if len(fps) < (20 if self.cfg.task == 'mt80' else 4):
-			print(f'WARNING: expected 20 files for mt80 task set, 4 files for mt30 task set, found {len(fps)} files.')
-	
+		loaded = np.load( self.cfg.data_dir, allow_pickle = True )
+		obs, actions, rewards, lens, task_name = loaded['obs'].item(), loaded['action'], loaded['reward'], loaded['traj_lengths'], loaded['task'].item()
+		
+		obs = np.concatenate([v for k,v in obs.items()], axis = -1) # combine obs dictionary into a state vector
+		ep_ends = list( np.cumsum(lens) )
+		ep_starts = [0] + ep_ends[:-1]
 		# Create buffer for sampling
 		_cfg = deepcopy(self.cfg)
-		_cfg.episode_length = 101 if self.cfg.task == 'mt80' else 501
-		_cfg.buffer_size = 550_450_000 if self.cfg.task == 'mt80' else 345_690_000
+		_cfg.episode_length = 300
+		_cfg.buffer_size = 1000 * 300 # 1000 trajectories, maximally 300 steps
 		_cfg.steps = _cfg.buffer_size
 		self.buffer = Buffer(_cfg)
-		for fp in tqdm(fps, desc='Loading data'):
-			td = torch.load(fp, weights_only=False)
-			assert td.shape[1] == _cfg.episode_length, \
-				f'Expected episode length {td.shape[1]} to match config episode length {_cfg.episode_length}, ' \
-				f'please double-check your config.'
-			self.buffer.load(td)
+		
+		for ep_start, ep_end in tqdm(zip(ep_starts, ep_ends), desc='Loading data'):
+			_obs, _actions, _rewards = obs[ep_start:ep_end], actions[ep_start:ep_end], rewards[ep_start:ep_end]
+			terminated, tasks = np.zeros_like(_rewards),  np.zeros_like(_rewards)
+			terminated[-1] = True
+			td =  TensorDict({
+					'obs': torch.tensor(_obs).unsqueeze(0).float(),
+					'action': torch.tensor(_actions) .unsqueeze(0).float(),
+					'reward': torch.tensor(_rewards) .unsqueeze(0).float(),
+					# 'terminated': torch.tensor(terminated) .unsqueeze(0),
+					'task': torch.tensor(tasks).unsqueeze(0).float(), # a dummy value
+					
+				}, batch_size = [1, len(_obs)])
+			
+			self.buffer.load( td )
+		
 		expected_episodes = _cfg.buffer_size // _cfg.episode_length
 		if self.buffer.num_eps != expected_episodes:
 			print(f'WARNING: buffer has {self.buffer.num_eps} episodes, expected {expected_episodes} episodes for {self.cfg.task} task set.')
-
+		
 	def train(self):
 		"""Train a TD-MPC2 agent."""
-		assert self.cfg.multitask and self.cfg.task in {'mt30', 'mt80'}, \
-			'Offline training only supports multitask training with mt30 or mt80 task sets.'
+		
 		self._load_dataset()
 		
 		print(f'Training agent for {self.cfg.steps} iterations...')
 		metrics = {}
-		for i in range(self.cfg.steps):
+		for i in tqdm( range(self.cfg.steps) ):
 
 			# Update agent
 			train_metrics = self.agent.update(self.buffer)
-
+			
 			# Evaluate agent periodically
-			if i % self.cfg.eval_freq == 0 or i % 10_000 == 0:
+			if i % self.cfg.eval_freq == 0:
 				metrics = {
 					'iteration': i,
 					'elapsed_time': time() - self._start_time,
 				}
 				metrics.update(train_metrics)
-				if i % self.cfg.eval_freq == 0:
-					metrics.update(self.eval())
-					self.logger.pprint_multitask(metrics, self.cfg)
-					if i > 0:
-						self.logger.save_agent(self.agent, identifier=f'{i}')
+				
 				self.logger.log(metrics, 'pretrain')
 			
 		self.logger.finish(self.agent)

@@ -1,0 +1,4 @@
+- task=mt80
+- model_size=48
+- batch_size=1024
+- enable_wandb=false

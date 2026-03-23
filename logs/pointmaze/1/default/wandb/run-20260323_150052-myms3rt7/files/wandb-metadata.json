@@ -1,0 +1,98 @@
+{
+    "os": "Linux-5.15.0-139-generic-x86_64-with-glibc2.31",
+    "python": "3.9.23",
+    "heartbeatAt": "2026-03-23T19:00:53.476794",
+    "startedAt": "2026-03-23T19:00:52.806034",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "task=pointmaze",
+        "model_size=48",
+        "action_dim=2",
+        "batch_size=1024",
+        "data_dir=/home/atkeonlab-3/Desktop/YiqiProject/dataset/PointMaze_UMaze-v3_debug.npz",
+        "enable_wandb=true",
+        "eval_freq=100",
+        "wandb_project=debug_tdmpc2",
+        "wandb_entity=wiki"
+    ],
+    "state": "running",
+    "program": "/home/atkeonlab-3/Desktop/YiqiProject/DisWM/dis-tdmpc2/./tdmpc2/train.py",
+    "codePathLocal": null,
+    "codePath": "tdmpc2/train.py",
+    "git": {
+        "remote": "https://github.com/yiqiwang8177/dis-tdmpc2.git",
+        "commit": "8bbc14ebabdb32ea7ada5c801dc525d0dc73bafe"
+    },
+    "email": "pkrish124@gmail.com",
+    "root": "/home/atkeonlab-3/Desktop/YiqiProject/DisWM/dis-tdmpc2",
+    "host": "atkeonlab3",
+    "username": "atkeonlab-3",
+    "executable": "/home/atkeonlab-3/miniconda3/envs/tdmpc2/bin/python",
+    "cpu_count": 4,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 3087.7242499999998,
+        "min": 800.0,
+        "max": 4400.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 4149.912,
+            "min": 800.0,
+            "max": 4400.0
+        },
+        {
+            "current": 3000.0,
+            "min": 800.0,
+            "max": 4400.0
+        },
+        {
+            "current": 1500.0,
+            "min": 800.0,
+            "max": 4400.0
+        },
+        {
+            "current": 4210.736,
+            "min": 800.0,
+            "max": 4400.0
+        },
+        {
+            "current": 4220.849,
+            "min": 800.0,
+            "max": 4400.0
+        },
+        {
+            "current": 4220.865,
+            "min": 800.0,
+            "max": 4400.0
+        },
+        {
+            "current": 900.0,
+            "min": 800.0,
+            "max": 4400.0
+        },
+        {
+            "current": 1600.0,
+            "min": 800.0,
+            "max": 4400.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 95.04855346679688,
+            "used": 29.976417541503906
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3090",
+            "memory_total": 25769803776
+        }
+    ],
+    "memory": {
+        "total": 31.28234100341797
+    }
+}

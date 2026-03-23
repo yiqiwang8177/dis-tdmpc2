@@ -55,7 +55,9 @@ class Buffer():
 				(v.numel()*v.element_size() if not isinstance(v, TensorDict) \
 				else sum([x.numel()*x.element_size() for x in v.values()])) \
 			for v in tds.values()
-		]) / len(tds)
+		]) 
+		if len(tds) > 0:
+			bytes_per_step /= len(tds)
 		total_bytes = bytes_per_step*self._capacity
 		print(f'Storage required: {total_bytes/1e9:.2f} GB')
 		# Heuristic: decide whether to use CUDA or CPU memory
@@ -73,6 +75,7 @@ class Buffer():
 		"""
 		num_new_eps = len(td)
 		episode_idx = torch.arange(self._num_eps, self._num_eps+num_new_eps, dtype=torch.int64)
+		
 		td['episode'] = episode_idx.unsqueeze(-1).expand(-1, td['reward'].shape[1])
 		if self._num_eps == 0:
 			self._buffer = self._init(td[0])
@@ -84,8 +87,10 @@ class Buffer():
 	def add(self, td):
 		"""Add an episode to the buffer."""
 		td['episode'] = torch.full_like(td['reward'], self._num_eps, dtype=torch.int64)
+		
 		if self._num_eps == 0:
 			self._buffer = self._init(td)
+		
 		self._buffer.extend(td)
 		self._num_eps += 1
 		return self._num_eps

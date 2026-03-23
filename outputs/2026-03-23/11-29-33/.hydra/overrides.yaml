@@ -1,0 +1,3 @@
+- tasks=pointmaze
+- model_size=48
+- action_dim=2
